@@ -3,8 +3,8 @@
 #include <Arduino.h>
 
 struct Data {
-    float volts = 0;
-    float pct = 0;
+    float volts = 0; // vem de throttle
+    float pct = 0;   // vem de throttle
 
     float temp = NAN;
     float humi = NAN;
@@ -12,12 +12,11 @@ struct Data {
     float rpm = 0;
     float speedKmh = 0;
 
-    float currentBat = 0;
-    float currentMot = 0;
+    float currentBat = 0; // vem de current
+    float currentMot = 0; // vem de current
 
-    // Vem de outros lugares, trazer valores pra cá
-    float voltageMin = 0;
-    float voltageMax = 0;
+    float voltageMin = 0; // vem de throttle
+    float voltageMax = 0; // vem de throttle
 
     float wheelCm = 0;
     float ppr = 0;

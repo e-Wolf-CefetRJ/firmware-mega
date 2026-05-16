@@ -10,5 +10,5 @@ namespace Throttle {
     extern Config config;
 
     void  defaultValue();
-    void loop();
+    void loop(uint8_t pin);
 }
