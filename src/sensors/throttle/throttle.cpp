@@ -1,5 +1,4 @@
 #include "throttle.h"
-#include "core/telemetry.h"
 #include "../hal/hal_adc.h"
 
 // Valores Privados
@@ -11,18 +10,15 @@ namespace {
     // Fault
     constexpr float VOLTAGE_FAULT_LOW  = 0.30f;
     constexpr float VOLTAGE_FAULT_HIGH = 4.90f;
-
-    // Filtro
-    int throttleFiltered = 0;
 }
 
 
 // Funções get Data
-float getVoltage(uint8_t pin) {
+float getVoltage(uint8_t pin, Throttle::Data& data) {
     int raw = analogRead(pin);
 
-    throttleFiltered = (throttleFiltered*3 + raw*5) / 8;
-    float v_adc = (throttleFiltered * HAL::Adc::VREF_VOLTS) / HAL::Adc::MAX_VALUE;
+    data.filtered = (data.filtered*3 + raw*5) / 8;
+    float v_adc = (data.filtered * HAL::Adc::VREF_VOLTS) / HAL::Adc::MAX_VALUE;
     return v_adc;
 }
 
@@ -37,6 +33,7 @@ float getPct(float v) {
 
 namespace Throttle {
     Config config;
+    Data data;
 
     void defaultValue() {
         config.voltageMin = VOLTAGE_MIN;
@@ -44,7 +41,7 @@ namespace Throttle {
     }
 
     void loop(uint8_t pin) {
-        float voltage = getVoltage(pin);
+        float voltage = getVoltage(pin, data);
         bool fault = (voltage < VOLTAGE_FAULT_LOW) || (voltage > VOLTAGE_FAULT_HIGH);
 
         float pedalPct = fault ? 0.0f : getPct(voltage);

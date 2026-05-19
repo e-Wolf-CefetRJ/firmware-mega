@@ -9,6 +9,13 @@ namespace Throttle {
     };
     extern Config config;
 
-    void  defaultValue();
+    struct Data {
+        float volts;
+        float pct;
+        int filtered;
+    };
+    extern Data data;
+
+    void defaultValue();
     void loop(uint8_t pin);
 }

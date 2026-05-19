@@ -71,6 +71,8 @@ float getCurrent(uint8_t pin, CurrentState &state, bool idle) {
 }
 
 namespace Current {
+    Data data;
+    
     void loop(uint8_t batteryPin, uint8_t motorPin, bool idle) {
         data.currentBat = getCurrent(batteryPin, batCurrent, idle);
         data.currentMot = getCurrent(motorPin, motCurrent, idle);
