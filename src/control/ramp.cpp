@@ -19,13 +19,6 @@ namespace {
     constexpr uint16_t ACCEL_RAMP_MS       = 250;
     constexpr uint8_t  REST_PCT_THRESHOLD  = 2;
 
-    struct AccelRamp {
-        uint32_t  startMs;
-        float     fromPct;
-        float     toPct;
-        float     lastPedalPct;
-    } accel;
-
     struct SoftRamp {
         uint32_t  restSinceMs;
         uint32_t  softStartMs;
@@ -36,6 +29,13 @@ namespace {
         float    dutyTargetPct;
         uint32_t rapidUntilMs;
     } output;
+    
+    struct AccelRamp {
+        uint32_t  startMs;
+        float     fromPct;
+        float     toPct;
+        float     lastPedalPct;
+    } accel;
 
     enum class RampMode : uint8_t {
         Accel,
@@ -47,7 +47,6 @@ namespace {
 }
 
 // Auxiliares LOOP
-//Soft
 void updateRestState(float pedalPct, uint8_t pedalDuty8,uint32_t now) {
     bool belowRest = pedalPct <= REST_PCT_THRESHOLD;
 

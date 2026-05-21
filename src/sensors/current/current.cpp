@@ -1,8 +1,9 @@
 #include "current.h"
-#include "core/telemetry.h"
 #include "../hal/hal_adc.h"
+#include "config/pins.h"
 
 #include <Arduino.h>
+//incluir cmath
 
 // Valores privados
 namespace {
@@ -16,9 +17,8 @@ namespace {
         bool  offsetValid     = false;
         float iir             = 0.0f;  // Corrente com filtragem
     };
-
-    CurrentState batCurrent;
-    CurrentState motCurrent;
+    CurrentState batteryState;
+    CurrentState motorState;
 
     constexpr float ALPHA = 0.2f;
     constexpr float BETA  = 0.02f;  
@@ -71,10 +71,11 @@ float getCurrent(uint8_t pin, CurrentState &state, bool idle) {
 }
 
 namespace Current {
-    Data data;
-    
-    void loop(uint8_t batteryPin, uint8_t motorPin, bool idle) {
-        data.currentBat = getCurrent(batteryPin, batCurrent, idle);
-        data.currentMot = getCurrent(motorPin, motCurrent, idle);
+    float getCurrentBattery(bool idle) {
+        return getCurrent(Pins::IBAT, batteryState, idle);
+    }
+
+    float getCurrentMotor(bool idle) {
+        return getCurrent(Pins::IMOT, motorState, idle);
     }
 }

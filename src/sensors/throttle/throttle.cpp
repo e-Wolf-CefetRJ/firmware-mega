@@ -1,5 +1,6 @@
 #include "throttle.h"
 #include "../hal/hal_adc.h"
+#include "config/pins.h"
 
 // Valores Privados
 namespace {
@@ -10,20 +11,24 @@ namespace {
     // Fault
     constexpr float VOLTAGE_FAULT_LOW  = 0.30f;
     constexpr float VOLTAGE_FAULT_HIGH = 4.90f;
+
+    struct InternalData {
+        float filtered = 0.0f;
+    } internal;
 }
 
 
 // Funções get Data
-float getVoltage(uint8_t pin, Throttle::Data& data) {
+float getVoltage(uint8_t pin, InternalData& internal) {
     int raw = analogRead(pin);
 
-    data.filtered = (data.filtered*3 + raw*5) / 8;
-    float v_adc = (data.filtered * HAL::Adc::VREF_VOLTS) / HAL::Adc::MAX_VALUE;
+    internal.filtered = (internal.filtered*3 + raw*5) / 8;
+    float v_adc = (internal.filtered * HAL::Adc::VREF_VOLTS) / HAL::Adc::MAX_VALUE;
     return v_adc;
 }
 
-float getPct(float v) {
-    float pct = (v - VOLTAGE_MIN) / (VOLTAGE_MAX - VOLTAGE_MIN);
+float getPct(float v, Throttle::Config& config) {
+    float pct = (v - config.voltageMin) / (config.voltageMax - config.voltageMin);
 
     if (!isfinite(pct))
         pct = 0.0f;
@@ -33,20 +38,22 @@ float getPct(float v) {
 
 namespace Throttle {
     Config config;
-    Data data;
-
+    
     void defaultValue() {
         config.voltageMin = VOLTAGE_MIN;
         config.voltageMax = VOLTAGE_MAX;
     }
 
-    void loop(uint8_t pin) {
-        float voltage = getVoltage(pin, data);
+    Data getData() {
+        float voltage = getVoltage(Pins::THROTTLE, internal);
         bool fault = (voltage < VOLTAGE_FAULT_LOW) || (voltage > VOLTAGE_FAULT_HIGH);
 
-        float pedalPct = fault ? 0.0f : getPct(voltage);
+        float pedalPct = fault ? 0.0f : getPct(voltage, config);
 
-        data.volts = voltage;
-        data.pct   = pedalPct;
+        return {voltage,pedalPct};
+    }
+
+    Config getConfig() {
+        return {config.voltageMin,config.voltageMax};
     }
 }
