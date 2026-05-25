@@ -19,7 +19,7 @@ namespace {
 
 
 // Funções set Data (dependendo mudar nomes)
-float setVoltage(uint8_t pin, InternalData& internal) {
+float readFilteredVoltage(uint8_t pin, InternalData& internal) {
     int raw = analogRead(pin);
 
     internal.filtered = (internal.filtered*3 + raw*5) / 8;
@@ -27,7 +27,7 @@ float setVoltage(uint8_t pin, InternalData& internal) {
     return v_adc;
 }
 
-float setPct(float v, Throttle::Config& config) {
+float voltageToPct(float v, Throttle::Config& config) {
     float pct = (v - config.voltageMin) / (config.voltageMax - config.voltageMin);
 
     if (!isfinite(pct))
@@ -37,10 +37,10 @@ float setPct(float v, Throttle::Config& config) {
 }
 
 void setData(Throttle::Data& data, Throttle::Config& config) {
-    float voltage = setVoltage(Pins::THROTTLE, internal);
+    float voltage = readFilteredVoltage(Pins::THROTTLE, internal);
     
     bool fault = (voltage < VOLTAGE_FAULT_LOW) || (voltage > VOLTAGE_FAULT_HIGH);
-    float pedalPct = fault ? 0.0f : setPct(voltage, config);
+    float pedalPct = fault ? 0.0f : voltageToPct(voltage, config);
     
     data.volts = voltage;
     data.pct = pedalPct;
@@ -48,8 +48,8 @@ void setData(Throttle::Data& data, Throttle::Config& config) {
 
 
 namespace Throttle {
-    Config config;
-    Data data;
+    static Config config;
+    static Data data;
 
     void defaultValue() {
         config.voltageMin = VOLTAGE_MIN;
@@ -73,5 +73,13 @@ namespace Throttle {
     }
     float getVoltageMax() {
         return config.voltageMax;
+    }
+
+    // Setters
+    void setVoltageMin(float value) {
+        config.voltageMin = value;
+    }
+    void setVoltageMax(float value) {
+        config.voltageMax = value;
     }
 }

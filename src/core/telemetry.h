@@ -20,8 +20,8 @@ namespace Telemetry {
         float voltageMin = 0; // vem de throttle
         float voltageMax = 0; // vem de throttle
 
-        float wheelCm = 0;
-        float ppr = 0;
+        float wheelCm = 0;  // vem de rpm
+        float ppr = 0;      // vem de rpm
 
         // Control
         bool overrideEnabled = false; // vem de ramp

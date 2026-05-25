@@ -16,8 +16,13 @@ namespace Throttle {
     void defaultValue();
     void loop();
 
+    // Getters
     float getVolts();
     float getPct();
     float getVoltageMin();
     float getVoltageMax();
+
+    // Setters
+    void setVoltageMin(float value);
+    void setVoltageMax(float value);
 }

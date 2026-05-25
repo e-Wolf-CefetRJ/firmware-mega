@@ -39,7 +39,7 @@ void sortSamples(int n, int samples[]) {
     
 }
 
-float getCurrent(uint8_t pin, CurrentState &state, bool idle) {
+float getFilteredCurrent(uint8_t pin, CurrentState &state, bool idle) {
     const uint8_t SAMPLES_NUMBER = 7;
     int samples[SAMPLES_NUMBER];
 
@@ -72,10 +72,10 @@ float getCurrent(uint8_t pin, CurrentState &state, bool idle) {
 
 namespace Current {
     float getCurrentBattery(bool idle) {
-        return getCurrent(Pins::IBAT, batteryState, idle);
+        return getFilteredCurrent(Pins::IBAT, batteryState, idle);
     }
 
     float getCurrentMotor(bool idle) {
-        return getCurrent(Pins::IMOT, motorState, idle);
+        return getFilteredCurrent(Pins::IMOT, motorState, idle);
     }
 }

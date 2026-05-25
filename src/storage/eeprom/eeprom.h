@@ -2,9 +2,13 @@
 
 #include <Arduino.h>
 
+#include "sensors/throttle/throttle.h"
+#include "control/ramp.h"
+#include "control/pwm.h"
+
 namespace Eeprom {
     struct Config {
-        uint8_t version;
+        uint8_t version = 3;  // Talvez retirar daqui
         uint32_t firmwareSignature;    // Assinatura que muda a cada compilação
         
         // Acelerador
@@ -24,7 +28,6 @@ namespace Eeprom {
         float slewDown;
         uint8_t startMin;
     };
-    extern Config config;
 
     void reset();
     void save();

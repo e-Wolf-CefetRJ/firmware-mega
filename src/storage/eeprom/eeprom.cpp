@@ -1,8 +1,6 @@
 #include <EEPROM.h>
 
 #include "eeprom.h"
-#include "./sensors/throttle/throttle.h"
-#include "./control/ramp.h"
 
 // Fowller-Noll-Vo hash function; Cria uma assinatura a cada compilação
 // Única forma da assinatura for igual, é se as compilações forem ao mesmo tempo
@@ -34,15 +32,18 @@ namespace Eeprom{
     Config config;
     
     void reset() {
-        Throttle::defaultValue(); // voltageMin e voltageMax
+        Throttle::defaultValue();
         Ramp::defaultValue();
+        PWM::defaultValue();
     }
 
     void save() {
         config.firmwareSignature = buildSignature();
 
-        config.voltageMin  =  Throttle::config.voltageMin;
-        config.voltageMax  =  Throttle::config.voltageMax;
+        config.voltageMin  =  Throttle::getVoltageMin();
+        config.voltageMax  =  Throttle::getVoltageMax();
+
+        config.pwm_hz   =   PWM::getFrequency();
 
         config.rapid_ms  =   Ramp::config.rapidRamp;
         config.rapidUp   =   Ramp::config.rapidUp;
@@ -59,9 +60,11 @@ namespace Eeprom{
         //if (config.version != ) return false;
         if (config.firmwareSignature != buildSignature()) return false;
 
-        Throttle::config.voltageMin = config.voltageMin;
-        Throttle::config.voltageMax = config.voltageMax;
+        Throttle::setVoltageMin(config.voltageMin);
+        Throttle::setVoltageMax(config.voltageMax);
 
+        PWM::setFrequency(config.pwm_hz);
+        
         Ramp::config.rapidRamp  =  config.rapid_ms;
         Ramp::config.rapidUp    =  config.rapidUp;
         Ramp::config.slewUp     =  config.slewUp;
