@@ -1,9 +1,25 @@
 #include "throttle.h"
-#include "../hal/hal_adc.h"
-#include "config/pins.h"
 
 // Valores Privados
 namespace {
+    struct Config {
+        float voltageMin = 0.0f;
+        float voltageMax = 0.0f;
+    };
+
+    struct Data {
+        float volts = 0.0f;
+        float pct = 0.0f;
+    };
+
+    struct InternalData {
+        float filtered = 0.0f;
+    };
+
+    Config config;
+    Data data;
+    InternalData internal;
+
     // Defaults
     constexpr float VOLTAGE_MIN = 1.10f;
     constexpr float VOLTAGE_MAX = 4.25f;
@@ -11,10 +27,6 @@ namespace {
     // Fault
     constexpr float VOLTAGE_FAULT_LOW  = 0.30f;
     constexpr float VOLTAGE_FAULT_HIGH = 4.90f;
-
-    struct InternalData {
-        float filtered = 0.0f;
-    } internal;
 
     float readFilteredVoltage(uint8_t pin) {
         int raw = analogRead(pin);
@@ -24,7 +36,7 @@ namespace {
         return v_adc;
     }
 
-    float voltageToPct(float v, Throttle::Config& config) {
+    float voltageToPct(float v) {
         float pct = (v - config.voltageMin) / (config.voltageMax - config.voltageMin);
 
         if (!isfinite(pct))
@@ -33,11 +45,11 @@ namespace {
         return constrain(pct, 0.0f, 1.0f) * 100.0f; // Valor percentual
     }
 
-    void setData(Throttle::Data& data, Throttle::Config& config) {
+    void setData() {
         float voltage = readFilteredVoltage(Pins::THROTTLE);
         
         bool fault = (voltage < VOLTAGE_FAULT_LOW) || (voltage > VOLTAGE_FAULT_HIGH);
-        float pedalPct = fault ? 0.0f : voltageToPct(voltage, config);
+        float pedalPct = fault ? 0.0f : voltageToPct(voltage);
         
         data.volts = voltage;
         data.pct = pedalPct;
@@ -45,22 +57,14 @@ namespace {
 }
 
 namespace Throttle {
-    static Config config;
-    static Data data;
-
-    void defaultValue() {
-        config.voltageMin = VOLTAGE_MIN;
-        config.voltageMax = VOLTAGE_MAX;
-    }
-
     void loop() {
-        setData(data, config);
+        setData();
     }
 
-    // Getters
     float getVolts() {
         return data.volts;
     }
+
     float getPct() {
         return data.pct;
     }
@@ -68,15 +72,21 @@ namespace Throttle {
     float getVoltageMin() {
         return config.voltageMin;
     }
+
     float getVoltageMax() {
         return config.voltageMax;
     }
 
-    // Setters
     void setVoltageMin(float value) {
         config.voltageMin = value;
     }
+    
     void setVoltageMax(float value) {
         config.voltageMax = value;
+    }
+
+    void defaultValue() {
+        setVoltageMin(VOLTAGE_MIN);
+        setVoltageMax(VOLTAGE_MAX);
     }
 }

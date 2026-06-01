@@ -2,19 +2,34 @@
 
 namespace {
     constexpr uint16_t PWM_FREQ_HZ = 1000;
+
+    struct Config {
+        uint16_t frequency = 0.0f; // 100 até 8000
+    };
+    Config config;
 }
 
 namespace PWM {
-    Config config;
-
-    void setup() {
-        pinMode(Pins::PWM_OUT,OUTPUT);
-        defaultValue();
-        applyFrequency();
-        setPct(0);
+    // Reset
+    void defaultValue() {
+        config.frequency = PWM_FREQ_HZ;
     }
 
-    void applyFrequency(){
+    // Helpers
+    void setPct(float pct){
+        pct=constrain(pct,0,100);
+
+        uint16_t top = ICR1;
+        uint16_t val = (uint16_t) ((pct/100.0f)*(float)top);
+        
+        if(val>top) 
+            val=top;    
+        
+        OCR1A=val;
+    }
+
+    void applyFrequency(uint16_t hz){
+        setFrequency(hz);
         const uint16_t hz = config.frequency;
 
         uint16_t cs_bits=0x01;
@@ -44,30 +59,25 @@ namespace PWM {
         TCCR1B|=cs_bits;
     }
 
-    // Reset
-    void defaultValue() {
-        config.frequency = PWM_FREQ_HZ;
-    }
-
     // Setters
     void setFrequency(uint16_t hz) {
         config.frequency = constrain(hz, 100, 8000);
-    }
-    
-    void setPct(float pct){
-        pct=constrain(pct,0,100);
-
-        uint16_t top = ICR1;
-        uint16_t val = (uint16_t) ((pct/100.0f)*(float)top);
-        
-        if(val>top) 
-            val=top;
-        
-        OCR1A=val;
     }
 
     // Getters
     uint16_t getFrequency() {
         return config.frequency;
+    }
+
+    // Main
+    void setup() {
+        pinMode(Pins::PWM_OUT,OUTPUT);
+        defaultValue();
+        applyFrequency(getFrequency());
+        setPct(0);
+    }
+
+    void loop(float dutyNowPct) {
+        setPct(dutyNowPct);
     }
 }

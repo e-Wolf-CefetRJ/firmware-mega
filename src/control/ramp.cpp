@@ -1,191 +1,299 @@
-#include <Arduino.h>
-
 #include "ramp.h"
-#include "core/telemetry.h"
 
 namespace {
+    struct Config {
+        uint16_t rapidRamp = 250;
+        float    rapidUp   = 150.0f;
+        float    slewUp    = 40.0f;
+        float    slewDown  = 60.0f;
+        uint8_t  startMin  = 8;
+        uint8_t  maxPct    = 100;
+        bool     stepMode  = false;
+        bool     accelSmoothing = true;
+    } config;
+
+    struct Data {
+        bool  overrideEnable = false;
+        int   overridePct    = 0;
+        float dutyNowPct     = 0.0f;
+        float dutyTargetPct  = 0.0f;
+    } data;
+
     // Defaults
-    constexpr uint16_t RAPID_RAMP_MS    = 250;
-    constexpr float    RAPID_UP_PCTPS   = 150.0f;
-    constexpr float    SLEW_UP_PCTPS    = 40.0f;
-    constexpr float    SLEW_DN_PCTPS    = 60.0f;
-    constexpr uint8_t  START_MIN_PCT    = 8;
+    constexpr uint16_t DEFAULT_RAPID_RAMP_MS    = 250;
+    constexpr float    DEFAULT_RAPID_UP_PCTPS   = 150.0f;
+    constexpr float    DEFAULT_SLEW_UP_PCTPS    = 40.0f;
+    constexpr float    DEFAULT_SLEW_DOWN_PCTPS  = 60.0f;
+    constexpr uint8_t  DEFAULT_START_MIN_PCT    = 8;
+
+    constexpr uint8_t  DEFAULT_MAX_PCT          = 100;
 
     // Constantes
     constexpr uint8_t  DEADZONE_PWM        = 4;
     constexpr uint8_t  MIN_START_PWM       = 20;
-    constexpr uint16_t REST_DEBOUNCE_MS    = 120;
     constexpr uint16_t SOFT_RAMP_MS        = 1500;
     constexpr uint16_t ACCEL_RAMP_MS       = 250;
     constexpr uint8_t  REST_PCT_THRESHOLD  = 2;
 
-    struct SoftRamp {
-        uint32_t  restSinceMs;
-        uint32_t  softStartMs;
-    } soft;
-
-    struct OutPutRamp {
-        float    dutyNowPct;
-        float    dutyTargetPct;
-        uint32_t rapidUntilMs;
-    } output;
-    
-    struct AccelRamp {
-        uint32_t  startMs;
-        float     fromPct;
-        float     toPct;
-        float     lastPedalPct;
-    } accel;
-
     enum class RampMode : uint8_t {
-        Accel,
         Rest,
         SoftStart,
-        Normal
+        Accel,
+        Default
     };
-    RampMode rampMode;
-}
 
-// Auxiliares LOOP
-void updateRestState(float pedalPct, uint8_t pedalDuty8,uint32_t now) {
-    bool belowRest = pedalPct <= REST_PCT_THRESHOLD;
+    struct RampState {
+        RampMode mode = RampMode::Rest;
+        uint32_t softStartMs = 0;
+        uint32_t accelStartMs = 0;
+        float    accelFromPct = 0.0f;
+        float    accelToPct = 0.0f;
+        float    lastPedalPct = 0.0f;
+    };
+    RampState state;
 
-    if (belowRest || pedalDuty8 == 0) {
-        if (rampMode != RampMode::Rest)
-            soft.restSinceMs = now;
-
-        if ((now - soft.restSinceMs) >= REST_DEBOUNCE_MS) {
-            rampMode = RampMode::Rest;
-        }
-    } else {
-        if (rampMode == RampMode::Rest) {
-            rampMode = RampMode::SoftStart;
-            soft.softStartMs = now;
-        }
-    }
-}
-
-float applySoftRamp(float cappedPct, uint32_t now) {
-    if (rampMode != RampMode::SoftStart)
-        return cappedPct;
-
-    float rampProgress = (float)(now - soft.softStartMs) / (float)SOFT_RAMP_MS;
-
-    rampProgress = constrain(rampProgress, 0.0f, 1.0f);
-
-    float easedProgress = (3.0f * rampProgress * rampProgress) - (2.0f * rampProgress * rampProgress * rampProgress);
-
-    float maxAllowedPct = easedProgress * 100.0f;
-
-    if (cappedPct > maxAllowedPct) 
-        cappedPct = maxAllowedPct;
-
-    if (rampProgress >= 1.0f)
-        rampMode = RampMode::Normal;
-
-    return cappedPct;
-}
-
-void updateAccelRamp(float pedalPct, uint32_t now, Ramp::Config& config) {
-    if (!config.accelSmoothing && rampMode == RampMode::SoftStart)
-        return;
-
-    if (pedalPct > accel.lastPedalPct + 0.001f) {
-        rampMode = RampMode::Accel;
-
-        accel.startMs = now;
-        accel.fromPct = output.dutyNowPct;
-        accel.toPct = pedalPct;
-
-    } else if (pedalPct + 0.001f < accel.lastPedalPct) {
-        rampMode = RampMode::Normal;
+    // Pedal
+    uint8_t discretizePedal(float pedalPct) {
+        uint8_t duty = (uint8_t)lroundf(constrain(pedalPct, 0.0f, 100.0f) * 255.0f / 100.0f);
+        if (duty < DEADZONE_PWM) 
+            duty = 0;
+        if (duty > 0 && duty < MIN_START_PWM) 
+            duty = 0;
+        return duty;
     }
 
-    accel.lastPedalPct = pedalPct;
-}
+    float applyMaxPct(float pctAfter) {
+        return pctAfter * ((float) Ramp::getMaxPct() / 100.0f);
+    }
 
-float applyAccelRamp(float cappedPct, uint32_t now) {
-    if (rampMode != RampMode::Accel)
-        return cappedPct;
+    // Soft e Rest
+    void updateRampMode(float pedalPct, uint8_t pedalDuty8, uint32_t now) {
+        bool belowRest = (pedalPct <= REST_PCT_THRESHOLD);
+        bool pedalZero = (pedalDuty8 == 0);
 
-    float rampProgress = (float)(now - accel.startMs) / (float)ACCEL_RAMP_MS;
+        if (belowRest || pedalZero) {
+            // Pedal no repouso
+            if (state.mode != RampMode::Rest) {
+                state.mode = RampMode::Rest;
+            }
+        } else {
+            // Pedal foi pisado
+            if (state.mode == RampMode::Rest) {
+                state.mode = RampMode::SoftStart;
+                state.softStartMs = now;
+            }
+        }
+    }
 
-    rampProgress = constrain(rampProgress, 0.0f, 1.0f);
+    float applySoftCap(float pedalAfter, uint32_t now) {
+        if (state.mode != RampMode::SoftStart) return pedalAfter;
 
-    float easedProgress = (3.0f * rampProgress * rampProgress) - (2.0f * rampProgress * rampProgress * rampProgress);
+        float x = constrain((float)(now - state.softStartMs) / (float)SOFT_RAMP_MS, 0.0f, 1.0f);
+        float s = (3.0f * x * x) - (2.0f * x * x * x);   // easing cubic
+        float softCapPct = s * 100.0f;
 
-    float maxAllowedPct = accel.fromPct + easedProgress * (accel.toPct - accel.fromPct);
+        float capped = min(pedalAfter, softCapPct);
+        if (x >= 1.0f) {
+            state.mode = RampMode::Default;   // soft terminou
+        }
+        return capped;
+    }
 
-    if (cappedPct > maxAllowedPct)
-        cappedPct = maxAllowedPct;
+    // Aceleração
+    void detectAccelRamp(float pedalAfter, uint32_t now) {
+        if (!Ramp::getAccelSmoothing() || state.mode == RampMode::SoftStart) {
+            state.mode = (state.mode == RampMode::Accel) ? RampMode::Default : state.mode;
+            return;
+        }
 
-    if (rampProgress >= 1.0f)
-        rampMode = RampMode::Normal;
+        if (pedalAfter > state.lastPedalPct + 0.001f) {
+            // Acelerando
+            state.mode = RampMode::Accel;
+            state.accelStartMs = now;
+            state.accelFromPct = Ramp::getDutyNow();
+            state.accelToPct   = pedalAfter;
+        } else if (pedalAfter + 0.001f < state.lastPedalPct) {
+            // Desacelerando
+            if (state.mode == RampMode::Accel) state.mode = RampMode::Default;
+        }
+        state.lastPedalPct = pedalAfter;
+    }
 
-    return cappedPct;
-}
+    float applyAccelCap(float cappedPct, uint32_t now) {
+        if (state.mode != RampMode::Accel) return cappedPct;
 
-float resolveTarget(float cappedPct, float pedalPct, Ramp::Data& data) {
-    if (data.overrideEnable)
-        return data.overridePct;
+        float x = constrain((float)(now - state.accelStartMs) / (float)ACCEL_RAMP_MS, 0.0f, 1.0f);
+        float s = (3.0f * x * x) - (2.0f * x * x * x);
+        float capPct = state.accelFromPct + s * (state.accelToPct - state.accelFromPct);
 
-    return max(cappedPct, 
-        (pedalPct > 0.0f && pedalPct < START_MIN_PCT)
-        ? (float)START_MIN_PCT
-        : 0.0f
-    );
+        float result = min(cappedPct, capPct);
+        if (x >= 1.0f) {
+            state.mode = RampMode::Default;
+        }
+        return result;
+    }
+
+    // Alvo final
+    float calculateTargetPct(float cappedPct, float pedalPct) {
+        if (Ramp::getOverrideEnable()) {
+            return (Ramp::getOverridePct() > 0) ? (float) Ramp::getOverridePct() : 0.0f;
+        }
+        float startMin = (pedalPct > 0.0f && pedalPct < Ramp::getStartMin()) ? (float)Ramp::getStartMin() : 0.0f;
+        return max(cappedPct, startMin);
+    }
+
+    // Aplicação
+    void applySlewRate(uint32_t now, uint32_t dt_ms) {
+        static float lastTargetLegacy = 0.0f;
+        static uint32_t rapidUntilMs = 0;
+
+        float dutyNowPct = Ramp::getDutyNow();
+        float targetPct = Ramp::getDutyTarget();
+
+        if (targetPct > lastTargetLegacy + 0.5f) {
+            rapidUntilMs = now + Ramp::getRapidRamp();
+        }
+        lastTargetLegacy = targetPct;
+
+        float slewUp = Ramp::getSlewUp();
+        if (rapidUntilMs > now && targetPct > dutyNowPct) {
+            slewUp = max(slewUp, Ramp::getRapidUp());
+        }
+
+        float stepUp = (slewUp * dt_ms) / 1000.0f;
+        float stepDn = (Ramp::getSlewDown() * dt_ms) / 1000.0f;
+
+        if (dutyNowPct < targetPct) {
+            dutyNowPct = min(targetPct, dutyNowPct + stepUp);
+        } else if (dutyNowPct > targetPct) {
+            dutyNowPct = max(targetPct, dutyNowPct - stepDn);
+        }
+        Ramp::setDutyNow(dutyNowPct);
+    }
+
+    void applyStepMode() {
+        uint8_t cur8 = (uint8_t)lroundf(constrain(Ramp::getDutyNow(), 0.0f, 100.0f) * 255.0f / 100.0f);
+        uint8_t tgt8 = (uint8_t)lroundf(constrain(Ramp::getDutyTarget(), 0.0f, 100.0f) * 255.0f / 100.0f);
+        int diff8 = (int)tgt8 - (int)cur8;
+        int step = 2 + abs(diff8) / 8;
+        if (step > 32) step = 32;
+
+        if (diff8 > 0) {
+            uint16_t next = cur8 + step;
+            if (next > tgt8) next = tgt8;
+            cur8 = (uint8_t)next;
+        } else if (diff8 < 0) {
+            int next = (int)cur8 - step;
+            if (next < tgt8) next = tgt8;
+            cur8 = (uint8_t)next;
+        }
+
+        float dutyNowPct = (cur8 * 100.0f) / 255.0f;
+        Ramp::setDutyNow(dutyNowPct);
+    }
 }
 
 namespace Ramp {
-    Config config;
-    Data data;
-
     void defaultValue() {
-        config.rapidRamp  =  RAPID_RAMP_MS;
-        config.rapidUp    =  RAPID_UP_PCTPS;
-        config.slewUp     =  SLEW_UP_PCTPS;
-        config.slewDown   =  SLEW_DN_PCTPS;
-        config.startMin   =  START_MIN_PCT;
+        setRapidRamp(DEFAULT_RAPID_RAMP_MS);
+        setRapidUp(DEFAULT_RAPID_UP_PCTPS);
+        setSlewUp(DEFAULT_SLEW_UP_PCTPS);
+        setSlewDown(DEFAULT_SLEW_DOWN_PCTPS);
+        setStartMin(DEFAULT_START_MIN_PCT);
+        setMaxPct(DEFAULT_MAX_PCT);
     }
 
-
+    // Controle
     void start() {
-        data.overrideEnable = false;
-        data.overridePct = 0;
+        setOverrideEnable(false);
+        setOverridePct(0);
     }
 
     void hold(int pct) {
-        data.overrideEnable = true;
-        data.overridePct = constrain(pct, 0, 100);
-        output.dutyTargetPct = pct;
+        setOverrideEnable(true);
+        setOverridePct(constrain(pct,0,100));
+        setDutyTarget(pct);
     }
 
     void stop() {
-        data.overrideEnable = true;
-        data.overridePct = 0;
-        output.dutyTargetPct = 0;
+        setOverrideEnable(true);
+        setOverridePct(0);
+        setDutyTarget(0);
     }
 
-
+    // Main
     void setup() {
-        uint32_t now = millis();
+        state.mode = RampMode::Rest;
+       
+        state.softStartMs = 0;
 
-        rampMode = RampMode::Rest;
+        setDutyNow(0);
+        setDutyTarget(0);
 
-        soft.restSinceMs = now;
-        soft.softStartMs = 0;
-
-        accel.startMs = 0;
-        accel.fromPct = 0.0f;
-        accel.toPct = 0.0f;
-        accel.lastPedalPct = 0.0f;
-
-        output.dutyNowPct = 0.0f;
-        output.dutyTargetPct = 0.0f;
-        output.rapidUntilMs = 0;
+        state.accelStartMs = 0;
+        state.accelFromPct = 0.0f;
+        state.accelToPct = 0.0f;
+        state.lastPedalPct = 0.0f;
     }
 
-    void loop(uint32_t now, float cappedPct) {
-        
+    void loop(float pedalPct, uint32_t now, uint32_t dt_ms) {
+        uint8_t pedalDuty8 = discretizePedal(pedalPct); // 8 de 8 bits
+        float pedalPctAfter = (pedalDuty8 * 100.0f) / 255.0f;
+        pedalPctAfter = applyMaxPct(pedalPctAfter);
+
+        // Rest e Soft
+        updateRampMode(pedalPct, pedalDuty8, now);
+        float cappedPct = applySoftCap(pedalPctAfter, now);
+
+        // Rampa S de Aceleração
+        detectAccelRamp(pedalPctAfter, now);
+        cappedPct = applyAccelCap(cappedPct, now);
+
+        // Alvo final
+        float dutyTargetPct = calculateTargetPct(cappedPct, pedalPct);
+        setDutyTarget(dutyTargetPct);
+
+        // Aplicação
+        if (!getStepMode()) {
+            applySlewRate(now, dt_ms);
+        } else {
+            applyStepMode();
+        }
+    }
+
+    // Getters
+    uint16_t getRapidRamp()    { return config.rapidRamp; }
+    float    getRapidUp()      { return config.rapidUp; }
+    float    getSlewUp()       { return config.slewUp; }
+    float    getSlewDown()     { return config.slewDown; }
+    uint8_t  getStartMin()     { return config.startMin; }
+    uint8_t  getMaxPct()       { return config.maxPct; }
+    bool     getStepMode()     { return config.stepMode; }
+    bool     getAccelSmoothing() { return config.accelSmoothing; }
+    
+    bool     getOverrideEnable() { return data.overrideEnable; }
+    int      getOverridePct()    { return data.overridePct; }
+    float    getDutyNow()        { return data.dutyNowPct; }
+    float    getDutyTarget()     { return data.dutyTargetPct; }
+
+    // Setters
+    void setRapidRamp(uint16_t ms)   { config.rapidRamp = ms; }
+    void setRapidUp(float pctps)     { config.rapidUp = pctps; }
+    void setSlewUp(float pctps)      { config.slewUp = pctps; }
+    void setSlewDown(float pctps)    { config.slewDown = pctps; }
+    void setStartMin(uint8_t pct)    { config.startMin = pct; }
+    void setMaxPct(uint8_t pct)      { config.maxPct = pct; }
+    void setStepMode(bool enable)    { config.stepMode = enable; }
+    void setAccelSmoothing(bool enable) { config.accelSmoothing = enable; }
+    
+    void setOverrideEnable(bool enable) { data.overrideEnable = enable; }
+    void setOverridePct(int pct)        { data.overridePct = constrain(pct, 0, 100); }
+    
+    void setDutyNow(float pct) {
+        data.dutyNowPct = constrain(pct, 0.0f, 100.0f);
+    }
+    
+    void setDutyTarget(float pct) {
+        data.dutyTargetPct = constrain(pct, 0.0f, 100.0f);
     }
 }

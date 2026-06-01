@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <EEPROM.h>
 
 #include "sensors/throttle/throttle.h"
 #include "control/ramp.h"
@@ -8,16 +9,12 @@
 
 namespace Eeprom {
     struct Config {
-        uint8_t version = 3;  // Talvez retirar daqui
         uint32_t firmwareSignature;    // Assinatura que muda a cada compilação
         
         // Acelerador
         float voltageMin; 
         float voltageMax;
         
-        // ?
-        uint8_t maxPct;
-
         // PWM
         uint16_t pwm_hz;
         
@@ -27,9 +24,12 @@ namespace Eeprom {
         float slewUp;
         float slewDown;
         uint8_t startMin;
+        uint8_t maxPct;
     };
 
     void reset();
     void save();
     bool load();
+
+    void setup();
 }

@@ -2,27 +2,21 @@
 
 #include <Arduino.h>
 
+#include "../hal/hal_adc.h"
+#include "config/pins.h"
+
 namespace Throttle {
-    struct Config {
-        float voltageMin;
-        float voltageMax;
-    };
-
-    struct Data {
-        float volts;
-        float pct;
-    };
-
     void defaultValue();
     void loop();
 
-    // Getters
+    // GETTTERS
     float getVolts();
     float getPct();
+
     float getVoltageMin();
     float getVoltageMax();
 
-    // Setters
+    // SETTERS
     void setVoltageMin(float value);
     void setVoltageMax(float value);
-}
+}   

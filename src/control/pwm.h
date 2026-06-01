@@ -5,18 +5,14 @@
 #include <Arduino.h>
 
 namespace PWM {
-    struct Config {
-        uint16_t frequency; // 100 até 8000
-    };
-
+    // Verificar quais funções devem ser públicas ou privadas
     void setup();
+    void loop(float dutyNowPct);
 
-    void applyFrequency();
+    void applyFrequency(uint16_t hz);
     
     void defaultValue();
 
     void setFrequency(uint16_t hz);
-    void setPct(float pct);
-
     uint16_t getFrequency();
 }

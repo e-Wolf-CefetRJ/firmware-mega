@@ -1,26 +1,9 @@
 #pragma once
 
 #include <Arduino.h>
+#include <math.h>
 
 namespace Ramp {
-    struct Config {
-        uint16_t rapidRamp; 
-        float    rapidUp;
-        float    slewUp; 
-        float    slewDown; 
-        uint8_t  startMin; 
-
-        bool stepMode = false;
-        bool accelSmoothing = true;
-    };
-    extern Config config;
-
-    struct Data {
-        bool overrideEnable = false;
-        int  overridePct    = 0;
-    };
-    extern Data data;
-
     void defaultValue();
 
     void start();
@@ -28,5 +11,41 @@ namespace Ramp {
     void stop();
 
     void setup();
-    void loop();
+    void loop(float pedalPct, uint32_t now, uint32_t dt_ms);
+
+    // Getters
+    // Config
+    uint16_t getRapidRamp();
+    float    getRapidUp();
+    float    getSlewUp();
+    float    getSlewDown();
+    uint8_t  getStartMin();
+
+    uint8_t  getMaxPct();
+
+    bool     getStepMode();
+    bool     getAccelSmoothing();
+    // Data
+    bool     getOverrideEnable();
+    int      getOverridePct();
+    float    getDutyNow();
+    float    getDutyTarget();
+
+    // Setters
+    // Config
+    void setRapidRamp(uint16_t ms);
+    void setRapidUp(float pctps);
+    void setSlewUp(float pctps);
+    void setSlewDown(float pctps);
+    void setStartMin(uint8_t pct);
+
+    void setMaxPct(uint8_t pct);
+
+    void setStepMode(bool enable);
+    void setAccelSmoothing(bool enable);
+    // Data
+    void setOverrideEnable(bool enable);
+    void setOverridePct(int pct);
+    void setDutyNow(float pct);
+    void setDutyTarget(float pct);
 }

@@ -2,8 +2,13 @@
 
 #include <Arduino.h>
 
+#include "../hal/hal_adc.h"
+#include "config/pins.h"
+
 namespace Current {
-    // idle = (dutyNowPct < 1.0f) && (rpm < 5.0f); pegar isso de fora e trazer pra cá
-    float getCurrentBattery(bool idle);
-    float getCurrentMotor(bool idle);
+    // idle = (dutyNowPct < 1.0f) && (rpm < 5.0f)
+    void loop(bool idle);
+    
+    float getCurrentBattery();
+    float getCurrentMotor();
 }

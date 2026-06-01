@@ -1,5 +1,3 @@
-#include <EEPROM.h>
-
 #include "eeprom.h"
 
 // Fowller-Noll-Vo hash function; Cria uma assinatura a cada compilação
@@ -45,11 +43,12 @@ namespace Eeprom{
 
         config.pwm_hz   =   PWM::getFrequency();
 
-        config.rapid_ms  =   Ramp::config.rapidRamp;
-        config.rapidUp   =   Ramp::config.rapidUp;
-        config.slewUp    =   Ramp::config.slewUp;
-        config.slewDown  =   Ramp::config.slewDown;
-        config.startMin  =   Ramp::config.startMin;
+        config.rapid_ms  =   Ramp::getRapidRamp();
+        config.rapidUp   =   Ramp::getRapidUp();
+        config.slewUp    =   Ramp::getSlewUp();
+        config.slewDown  =   Ramp::getSlewDown();
+        config.startMin  =   Ramp::getStartMin();
+        config.maxPct    =   Ramp::getMaxPct();
 
         EEPROM.put(0,config);
     }
@@ -57,7 +56,6 @@ namespace Eeprom{
     bool load() {
         EEPROM.get(0,config);
 
-        //if (config.version != ) return false;
         if (config.firmwareSignature != buildSignature()) return false;
 
         Throttle::setVoltageMin(config.voltageMin);
@@ -65,12 +63,20 @@ namespace Eeprom{
 
         PWM::setFrequency(config.pwm_hz);
         
-        Ramp::config.rapidRamp  =  config.rapid_ms;
-        Ramp::config.rapidUp    =  config.rapidUp;
-        Ramp::config.slewUp     =  config.slewUp;
-        Ramp::config.slewDown   =  config.slewDown;
-        Ramp::config.startMin   =  config.startMin;
-
+        Ramp::setRapidRamp(config.rapid_ms);
+        Ramp::setRapidUp(config.rapidUp);
+        Ramp::setSlewUp(config.slewUp);
+        Ramp::setSlewDown(config.slewDown);
+        Ramp::setStartMin(config.startMin);
+        Ramp::setMaxPct(config.maxPct);
+        
         return true;
+    }
+
+    void setup() {
+        if (!load()) {
+            reset();
+            save();
+        }
     }
 }

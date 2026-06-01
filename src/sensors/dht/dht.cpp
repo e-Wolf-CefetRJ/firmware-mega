@@ -1,10 +1,18 @@
 #include "dht.h"
+#define DHTTYPE DHT22
 
-namespace Dht {
-    // Privados
-    static DHT dht(Pins::DHT22, DHTTYPE);
-    static Data data;
-    static uint32_t lastDHT = 0;
+namespace {
+    DHT dht(Pins::DHT22, DHTTYPE);
+
+    struct Data {
+        float temp = NAN;
+        float humi = NAN;
+    };
+    Data data;
+    
+    uint32_t lastDHT = 0;
+    constexpr uint32_t DHT_MS = 2000;
+
 
     static void setData(uint32_t now) {
         if(now - lastDHT >= DHT_MS) {
@@ -20,8 +28,9 @@ namespace Dht {
                 data.humi = humi;
         }
     }
+}
 
-    // Públicos
+namespace Dht {
     void setup() {
         dht.begin();
     }
