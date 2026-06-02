@@ -31,6 +31,7 @@ namespace {
     // Constantes
     constexpr uint8_t  DEADZONE_PWM        = 4;
     constexpr uint8_t  MIN_START_PWM       = 20;
+    constexpr uint16_t REST_DEBOUNCE_MS    = 120;
     constexpr uint16_t SOFT_RAMP_MS        = 1500;
     constexpr uint16_t ACCEL_RAMP_MS       = 250;
     constexpr uint8_t  REST_PCT_THRESHOLD  = 2;
@@ -44,6 +45,7 @@ namespace {
 
     struct RampState {
         RampMode mode = RampMode::Rest;
+        uint32_t restStartMs = 0;
         uint32_t softStartMs = 0;
         uint32_t accelStartMs = 0;
         float    accelFromPct = 0.0f;
@@ -74,7 +76,12 @@ namespace {
         if (belowRest || pedalZero) {
             // Pedal no repouso
             if (state.mode != RampMode::Rest) {
-                state.mode = RampMode::Rest;
+                state.restStartMs = now;
+
+                // Essa condicional não vai ativar no momento, pois falta testes de validação de curva
+                if ((now - state.restStartMs) >= REST_DEBOUNCE_MS) {
+                    state.mode = RampMode::Rest;
+                }
             }
         } else {
             // Pedal foi pisado
