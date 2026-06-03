@@ -294,7 +294,7 @@ namespace Ramp {
     void setMaxPct(uint8_t pct)      { config.maxPct = pct; }
     void setStepMode(bool enable)    { config.stepMode = enable; }
     void setAccelSmoothing(bool enable) { config.accelSmoothing = enable; }
-    void setRampDelayMs(bool delay) { config.rampDelayMs = delay; }
+    void setRampDelayMs(uint16_t delay) { config.rampDelayMs = delay; }
 
     void setOverrideEnable(bool enable) { data.overrideEnable = enable; }
     void setOverridePct(float pct)        { data.overridePct = constrain(pct, 0, 100); }

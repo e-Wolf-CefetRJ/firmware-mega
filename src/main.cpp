@@ -13,17 +13,16 @@
 #include "sensors/dht/dht.h"
 #include "sensors/rpm/rpm.h"
 
-#include "storage/rtc/rtc.h"
+#include "storage/sd.h"
 
 const uint8_t LOOP_MS = 50; // Antes uint32_t
 static uint32_t lastLoop = 0;
-static uint8_t printmode = 0;
 
 void setup() {
     Serial.begin(115200);
     Serial.setTimeout(30);
 
-    RTC::setup();
+    SDLogger::setup();
     Eeprom::setup();
 
     PWM::setup();
@@ -63,7 +62,7 @@ void loop() {
 
         RPM::loop();
 
-        Telemetry::Data data = {
+        Telemetry::Data telemetryData = {
             now,
             Throttle::getVolts(),
             Throttle::getPct(),
@@ -82,9 +81,24 @@ void loop() {
             Ramp::getMaxPct(),
         };
 
-        Telemetry::loop(data);
+        Telemetry::loop(telemetryData);
         
-        // SD
+        SDLogger::Data sdData = {
+            now,
+            Throttle::getVolts(),
+            Throttle::getPct(),
+            Dht::getTemp(),
+            Dht::getHumi(),
+            RPM::getRpm(),
+            RPM::getSpeed(),
+            Current::getCurrentBattery(),
+            Current::getCurrentMotor(),
+            Ramp::getDutyNow(),
+            Ramp::getDutyTarget(),
+            Ramp::getMaxPct(),
+        };
+
+        SDLogger::loop(sdData);
 
         if (Ramp::getRampDelayMs()) 
             delay(Ramp::getRampDelayMs());

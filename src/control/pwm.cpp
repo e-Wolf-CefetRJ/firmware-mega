@@ -30,7 +30,6 @@ namespace PWM {
 
     void applyFrequency(uint16_t hz){
         setFrequency(hz);
-        const uint16_t hz = config.frequency;
 
         uint16_t cs_bits=0x01;
         uint32_t top=(F_CPU/(1UL*hz))-1;

@@ -4,6 +4,6 @@
 
 // Constantes compartilhadas
 namespace HAL::Adc {
-    inline constexpr int   MAX_VALUE  = 1023;
-    inline constexpr float VREF_VOLTS = 5.0f;
+    constexpr int   MAX_VALUE  = 1023;
+    constexpr float VREF_VOLTS = 5.0f;
 }
