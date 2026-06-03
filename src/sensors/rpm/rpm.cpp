@@ -1,5 +1,6 @@
 #include "rpm.h"
 
+// mudar unsigned long para uint32_t ou uint64_t
 namespace {
     struct Data {
         float wheelCm = 50.8f;
@@ -23,7 +24,7 @@ namespace {
         unsigned long frequencyRaw = 0;
         unsigned int zeroDebounceExtra = 0;
         unsigned long zeroTimeoutUs = 600000UL;
-        volatile unsigned long minPulseUs = 200; // USO FORA DAQUI (DEVE TER GET E SET )
+        volatile unsigned long minPulseUs = 200;
 
         static constexpr byte numReadings = 2;
 
@@ -65,7 +66,7 @@ namespace {
 
 // Toda variável alterada aqui deve ser volatile
 ISR(PCINT2_vect) {
-    uint8_t state = PINK & _BV(Pins::PCINT_PIN);
+    uint8_t state = PINK & Pins::PCINT_PIN;
 
     if(state && !isr.lastState) {
         unsigned long now = micros();
@@ -97,9 +98,9 @@ ISR(PCINT2_vect) {
 namespace RPM {
     void setup() {
         pinMode(Pins::RPM, INPUT_PULLUP);
-        isr.lastState = PINK & _BV(Pins::PCINT_PIN);
-        PCICR |= _BV(Pins::PCIE_NUM);
-        PCMSK2 |= _BV(Pins::PCINT_MASK);
+        isr.lastState = PINK & Pins::PCINT_PIN;
+        PCICR |= Pins::PCIE_NUM;
+        PCMSK2 |= Pins::PCINT_MASK;
     }
 
     void loop() {
@@ -148,7 +149,12 @@ namespace RPM {
     float getRpm() { return data.rpm; }
     float getSpeed() { return data.speed; }
 
+    long getMinPulse() { return runtime.minPulseUs; }
+
     // Setters
     void setWheelCm(float value) { data.wheelCm = value; }
     void setPpr(uint8_t value) { data.ppr = value; }
+
+    void setMinPulse(long value) { runtime.minPulseUs = value; }
+    void setZeroTimeout(unsigned long value) { runtime.zeroTimeoutUs = value; }
 } 

@@ -27,7 +27,7 @@ namespace Pins {
     inline constexpr uint8_t RTC_RESET    = 24;
 
     // PCINT (Relacionados ao RPM, não são pinos físicos)
-    inline constexpr uint8_t PCINT_PIN    = PK0;           // Bit 0 do registrador PINK
+    inline constexpr uint8_t PCINT_PIN    = _BV(PK0);           // Bit 0 do registrador PINK
     inline constexpr uint8_t PCINT_MASK   = _BV(PCINT16);  // Constante que identifica interrupções
-    inline constexpr uint8_t PCIE_NUM     = PCIE2;         // Bit 2 do registrador PCICR
+    inline constexpr uint8_t PCIE_NUM     = _BV(PCIE2);         // Bit 2 do registrador PCICR
 }

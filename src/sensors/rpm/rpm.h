@@ -13,6 +13,11 @@ namespace RPM {
     float getRpm();
     float getSpeed();
 
+    long getMinPulse();
+
     void setWheelCm(float value);
     void setPpr(uint8_t value);
+
+    void setMinPulse(long value);
+    void setZeroTimeout(unsigned long value);
 }

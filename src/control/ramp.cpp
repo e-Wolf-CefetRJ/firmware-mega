@@ -10,11 +10,12 @@ namespace {
         uint8_t  maxPct    = 100;
         bool     stepMode  = false;
         bool     accelSmoothing = true;
+        uint16_t rampDelayMs = 0;
     } config;
 
     struct Data {
         bool  overrideEnable = false;
-        int   overridePct    = 0;
+        float   overridePct    = 0;
         float dutyNowPct     = 0.0f;
         float dutyTargetPct  = 0.0f;
     } data;
@@ -277,9 +278,10 @@ namespace Ramp {
     uint8_t  getMaxPct()       { return config.maxPct; }
     bool     getStepMode()     { return config.stepMode; }
     bool     getAccelSmoothing() { return config.accelSmoothing; }
-    
+    uint16_t getRampDelayMs()   { return config.rampDelayMs; }
+
     bool     getOverrideEnable() { return data.overrideEnable; }
-    int      getOverridePct()    { return data.overridePct; }
+    float    getOverridePct()    { return data.overridePct; }
     float    getDutyNow()        { return data.dutyNowPct; }
     float    getDutyTarget()     { return data.dutyTargetPct; }
 
@@ -292,9 +294,10 @@ namespace Ramp {
     void setMaxPct(uint8_t pct)      { config.maxPct = pct; }
     void setStepMode(bool enable)    { config.stepMode = enable; }
     void setAccelSmoothing(bool enable) { config.accelSmoothing = enable; }
-    
+    void setRampDelayMs(bool delay) { config.rampDelayMs = delay; }
+
     void setOverrideEnable(bool enable) { data.overrideEnable = enable; }
-    void setOverridePct(int pct)        { data.overridePct = constrain(pct, 0, 100); }
+    void setOverridePct(float pct)        { data.overridePct = constrain(pct, 0, 100); }
     
     void setDutyNow(float pct) {
         data.dutyNowPct = constrain(pct, 0.0f, 100.0f);

@@ -25,9 +25,11 @@ namespace Ramp {
 
     bool     getStepMode();
     bool     getAccelSmoothing();
+    uint16_t getRampDelayMs();
+
     // Data
     bool     getOverrideEnable();
-    int      getOverridePct();
+    float    getOverridePct();
     float    getDutyNow();
     float    getDutyTarget();
 
@@ -43,9 +45,10 @@ namespace Ramp {
 
     void setStepMode(bool enable);
     void setAccelSmoothing(bool enable);
+    void setRampDelayMs(uint16_t delay);
     // Data
     void setOverrideEnable(bool enable);
-    void setOverridePct(int pct);
+    void setOverridePct(float pct);
     void setDutyNow(float pct);
     void setDutyTarget(float pct);
 }

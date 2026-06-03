@@ -2,31 +2,38 @@
 
 #include <Arduino.h>
 
-namespace Telemetry {
+namespace Telemetry {    
     struct Data {
+        uint32_t now;
+
         // Sensors
-        float volts = 0; // vem de throttle
-        float pct = 0;   // vem de throttle
+        float volts; // vem de throttle
+        float pct;   // vem de throttle
 
-        float temp = NAN;  // vem de dht
-        float humi = NAN;  // vem de dht
+        float temp;  // vem de dht
+        float humi;  // vem de dht
 
-        float rpm = 0;       // vem de rpm
-        float speedKmh = 0;  // vem de rpm
+        float rpm;       // vem de rpm
+        float speedKmh;  // vem de rpm
 
-        float currentBat = 0; // vem de current
-        float currentMot = 0; // vem de current
+        float currentBat; // vem de current
+        float currentMot; // vem de current
 
-        float voltageMin = 0; // vem de throttle
-        float voltageMax = 0; // vem de throttle
+        float voltageMin; // vem de throttle
+        float voltageMax; // vem de throttle
 
-        float wheelCm = 0;  // vem de rpm
-        float ppr = 0;      // vem de rpm
+        float wheelCm;    // vem de rpm
+        uint8_t ppr;      // vem de rpm
 
         // Control
-        bool overrideEnabled = false; // vem de ramp
-        float overridePct = 0;        // vem de ramp
+        bool overrideEnabled; // vem de ramp
+        float overridePct;    // vem de ramp
 
-        float maxPct = 0;
+        uint8_t  maxPct;  // vem de ramp
     };
+
+    void setPrintMode(uint8_t value);
+    uint8_t getPrintMode();
+
+    void loop(const Data& data);
 }
