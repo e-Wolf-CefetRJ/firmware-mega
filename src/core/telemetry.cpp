@@ -23,7 +23,7 @@ namespace Telemetry {
             Serial.print(' ');
             Serial.print(F("RPM:"));   Serial.print(data.rpm, 1);      Serial.print(' ');
             Serial.print(F("Speed:")); Serial.print(data.speedKmh, 2); Serial.print(' ');
-            Serial.print(F("I:"));     Serial.print(data.currentBat, 2); Serial.print(' ');
+            Serial.print(F("IBAT:"));  Serial.print(data.currentBat, 2); Serial.print(' ');
             Serial.print(F("IMOT:"));  Serial.print(data.currentMot, 2); Serial.print(' ');
             Serial.print(F("MIN:"));   Serial.print(data.voltageMin, 3);    Serial.print(' ');
             Serial.print(F("MAX:"));   Serial.print(data.voltageMax, 3);    Serial.print(' ');
