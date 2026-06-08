@@ -30,8 +30,6 @@ void setup() {
     RPM::setup();
     Dht::setup();
 
-    // FALTA SD
-
     Ramp::setup();
 
     Serial.println(F("ACK:BOOT OK"));

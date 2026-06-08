@@ -78,11 +78,9 @@ namespace {
             // Pedal no repouso
             if (state.mode != RampMode::Rest) {
                 state.restStartMs = now;
-
-                // Essa condicional não vai ativar no momento, pois falta testes de validação de curva
-                if ((now - state.restStartMs) >= REST_DEBOUNCE_MS) {
-                    state.mode = RampMode::Rest;
-                }
+            }
+            if ((now - state.restStartMs) >= REST_DEBOUNCE_MS) {
+                state.mode = RampMode::Rest;
             }
         } else {
             // Pedal foi pisado
