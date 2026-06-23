@@ -6,8 +6,10 @@
 #include "config/pins.h"
 
 namespace Throttle {
-    void defaultValue();
     void loop();
+    void setup();
+    
+    void defaultValue();
 
     // GETTTERS
     float getVolts();

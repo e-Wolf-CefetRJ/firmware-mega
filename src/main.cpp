@@ -21,7 +21,7 @@ static uint32_t lastLoop = 0;
 void setup() {
     Serial.begin(115200);
     Serial.setTimeout(30);
-
+    /*
     SDLogger::setup();
     Eeprom::setup();
 
@@ -31,8 +31,10 @@ void setup() {
     Dht::setup();
 
     Ramp::setup();
+    */
+   Throttle::setup();
 
-    Serial.println(F("ACK:BOOT OK"));
+    //Serial.println(F("ACK:BOOT OK"));
 }
 
 void loop() {
@@ -41,12 +43,13 @@ void loop() {
     
     uint32_t now=millis();
     if(now - lastLoop >= LOOP_MS){
-        uint32_t dt_ms=now - lastLoop;
+        //uint32_t dt_ms=now - lastLoop;
         lastLoop=now;
 
         // PARA FUNCIONAR TEM QUE ESTAR NESTA ORDEM!!
         Throttle::loop();
 
+        /*
         bool idle = (Ramp::getDutyNow()<1.0f) && (RPM::getRpm() < 5.0f);
         Current::loop(idle);
 
@@ -81,6 +84,7 @@ void loop() {
 
         Telemetry::loop(telemetryData);
         
+        
         SDLogger::Data sdData = {
             now,
             Throttle::getVolts(),
@@ -100,5 +104,6 @@ void loop() {
 
         if (Ramp::getRampDelayMs()) 
             delay(Ramp::getRampDelayMs());
+        */
     }
 }
