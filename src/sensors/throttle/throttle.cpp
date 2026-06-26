@@ -1,5 +1,16 @@
 #include "throttle.h"
 
+/*
+    Como funciona a calibração:
+    Quando ligar o arduino o setup irá ativar, pedindo uma confirmação para iniciar a calibração
+    Após confirmar irá iniciar o loop, onde será chamado a função calibrarPedal(), lá irá pedir outra confirmação para iniciar a função calibrarMinimo
+    Na calibrarMinimo, irá ser coletado 500 amostras de corrente, que serão ordenadas retirando extremos e então pegar a média (média aparada)
+    No calibrarMaximo fará a mesma coisa
+    Ambas calibração recebem um offset
+    E o resultado será suas voltagens minimas e maximas
+    Para o Fault adicione/remove 0.70 às correntes 
+*/
+
 // Valores Privados
 namespace {
     struct Config {
@@ -20,22 +31,24 @@ namespace {
     Data data;
     InternalData internal;
 
+    // Valores atuais 25/06/2026
+
     // Defaults
-    constexpr float VOLTAGE_MIN = 1.10f; // Buscando valores!!!
-    constexpr float VOLTAGE_MAX = 4.25f; // Buscando valores!!!
+    constexpr float VOLTAGE_MIN = 0.93f;
+    constexpr float VOLTAGE_MAX = 3.39f;
 
     // Fault
-    constexpr float VOLTAGE_FAULT_LOW  = 0.30f;  // 0.05 é o limite físico
-    constexpr float VOLTAGE_FAULT_HIGH = 4.90f;  // 4.95 é o limite físico
+    constexpr float VOLTAGE_FAULT_LOW  = 0.23f;
+    constexpr float VOLTAGE_FAULT_HIGH = 4.09f;  
 
     float readFilteredVoltage(uint8_t pin) {
         int raw = analogRead(pin);
 
-        // Voltar com filtragem após calibração
-        // internal.filtered = (internal.filtered*3 + raw*5) / 8;
+        //internal.filtered = (internal.filtered*3 + raw*5) / 8;
         float v_adc = (
-            //internal.filtered 
+            // internal.filtered
             raw * HAL::Adc::VREF_VOLTS) / HAL::Adc::MAX_VALUE;
+
         return v_adc;
     }
 

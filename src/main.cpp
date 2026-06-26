@@ -15,6 +15,10 @@
 
 #include "storage/sd.h"
 
+/*
+    Para testar calibração deixe apenas o Throttle rodando
+*/
+
 const uint8_t LOOP_MS = 50; // Antes uint32_t
 static uint32_t lastLoop = 0;
 
