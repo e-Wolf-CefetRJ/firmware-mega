@@ -1,5 +1,8 @@
 #include "throttle.h"
 
+// Caso precise de calibração, tire de comentário
+// #define CALIBRATION_ENABLED
+
 // Valores Privados
 namespace {
     struct Config {
@@ -31,11 +34,9 @@ namespace {
     float readFilteredVoltage(uint8_t pin) {
         int raw = analogRead(pin);
 
-        // Voltar com filtragem após calibração
-        // internal.filtered = (internal.filtered*3 + raw*5) / 8;
-        float v_adc = (
-            //internal.filtered 
-            raw * HAL::Adc::VREF_VOLTS) / HAL::Adc::MAX_VALUE;
+        internal.filtered = (internal.filtered*3 + raw*5) / 8;
+        float v_adc = (internal.filtered * HAL::Adc::VREF_VOLTS) / HAL::Adc::MAX_VALUE;
+
         return v_adc;
     }
 
@@ -61,6 +62,18 @@ namespace {
     // ==================================================
     // ------------------- CALIBRAÇÃO -------------------
     // ==================================================
+    #ifdef CALIBRATION_ENABLED
+
+    /*
+        Como funciona a calibração:
+        Quando ligar o arduino o setup irá ativar, pedindo uma confirmação para iniciar a calibração
+        Após confirmar irá iniciar o loop, onde será chamado a função calibrarPedal(), lá irá pedir outra confirmação para iniciar a função calibrarMinimo
+        Na calibrarMinimo, irá ser coletado 500 amostras de corrente, que serão ordenadas retirando extremos e então pegar a média (média aparada)
+        No calibrarMaximo fará a mesma coisa
+        Ambas calibração recebem um offset
+        E o resultado será suas voltagens minimas e maximas
+        Para o Fault adicione/remove 0.70 às correntes 
+    */
 
     const int MAX_SAMPLES = 500;
 
@@ -92,6 +105,12 @@ namespace {
         return soma / n;
     }
 
+    float readRawVoltage(uint8_t pin) {
+        int raw = analogRead(pin);
+        float v_adc = (raw * HAL::Adc::VREF_VOLTS) / HAL::Adc::MAX_VALUE;
+        return v_adc;
+    }
+
     float calibrarMinimo(int tempoMs = 3000){
         float samples[MAX_SAMPLES];
         int count = 0;
@@ -101,7 +120,7 @@ namespace {
         uint32_t inicio = millis();
 
         while (millis() - inicio < tempoMs / 2 && count < MAX_SAMPLES) {
-            samples[count++] = readFilteredVoltage(Pins::THROTTLE);
+            samples[count++] = readRawVoltage(Pins::THROTTLE);
             delay(2); // 2ms entre samples → ~500 samples em 1s
         }
         
@@ -118,7 +137,7 @@ namespace {
         uint32_t inicio = millis();
 
         while (millis() - inicio < tempoMs / 2 && count < MAX_SAMPLES) {
-            samples[count++] = readFilteredVoltage(Pins::THROTTLE);
+            samples[count++] = readRawVoltage(Pins::THROTTLE);
             delay(2); // 2ms entre samples → ~500 samples em 1s
         }
         
@@ -209,11 +228,13 @@ namespace {
         }
         Serial.println("========================================\n");
     }
+    #endif
 }
 
 namespace Throttle {
     // Main
     void setup() {
+        #ifdef CALIBRATION_ENABLED
         Throttle::defaultValue(); // Valores padrão iniciais
     
         Serial.println("Digite 'C' e pressione Enter para calibrar.");
@@ -227,9 +248,11 @@ namespace Throttle {
         if (cmd == 'C' || cmd == 'c') {
             calibrarPedal();
         }
+        #endif
     }
 
     void loop() {
+        #ifdef CALIBRATION_ENABLED
         // Verifica se o usuário enviou um comando
         if (Serial.available()) {
             char cmd = Serial.read();
@@ -242,10 +265,9 @@ namespace Throttle {
                 Serial.println("Comando invalido. Digite 'C' para calibrar.");
             }
         }
-        
-        // getData();
-        
         delay(10);
+        #endif
+        setData();
     }
 
     // Getters
