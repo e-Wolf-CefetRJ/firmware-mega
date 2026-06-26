@@ -24,12 +24,12 @@ namespace {
     InternalData internal;
 
     // Defaults
-    constexpr float VOLTAGE_MIN = 1.10f; // Buscando valores!!!
-    constexpr float VOLTAGE_MAX = 4.25f; // Buscando valores!!!
+    constexpr float VOLTAGE_MIN = 0.93f; 
+    constexpr float VOLTAGE_MAX = 3.39f; 
 
     // Fault
-    constexpr float VOLTAGE_FAULT_LOW  = 0.30f;  // 0.05 é o limite físico
-    constexpr float VOLTAGE_FAULT_HIGH = 4.90f;  // 4.95 é o limite físico
+    constexpr float VOLTAGE_FAULT_LOW  = 0.23f;  // 0.05 é o limite físico
+    constexpr float VOLTAGE_FAULT_HIGH = 4.09f;  // 4.95 é o limite físico
 
     float readFilteredVoltage(uint8_t pin) {
         int raw = analogRead(pin);
