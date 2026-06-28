@@ -7,32 +7,8 @@ namespace {
         uint16_t frequency = 0; // 100 até 8000
     };
     Config config;
-}
-
-namespace PWM {
-    // Reset
-    void defaultValue() {
-        config.frequency = PWM_FREQ_HZ;
-    }
-
-    // Helpers
-    void setPct(float pct){
-        pct=constrain(pct,0,100);
-
-        uint16_t top = ICR1;  // Período total do PWM
-        uint16_t val = (uint16_t) ((pct/100.0f)*(float)top);
-        
-        if(val>top) 
-            val=top;    
-        
-        OCR1A=val;  // Define o valor que vai mudar de High para Low (gera a onda quadrada)
-        // Quando não invertido, 0% é Low e 100% é High
-    }
 
     void applyFrequency(uint16_t hz){
-        setFrequency(hz);
-        hz = getFrequency(); // Valor pós constrain
-
         uint16_t cs_bits=0x01;
         uint32_t top=(F_CPU/(1UL*hz))-1;    // F_CPU = 16MHz 
 
@@ -61,10 +37,32 @@ namespace PWM {
         
         TCCR1B|=cs_bits;
     }
+}
+
+namespace PWM {
+    // Reset
+    void defaultValue() {
+        config.frequency = PWM_FREQ_HZ;
+    }
+
+    // Helpers
+    void setPct(float pct){
+        pct=constrain(pct,0,100);
+
+        uint16_t top = ICR1;  // Período total do PWM
+        uint16_t val = (uint16_t) ((pct/100.0f)*(float)top);
+        
+        if(val>top) 
+            val=top;    
+        
+        OCR1A=val;  // Define o valor que vai mudar de High para Low (gera a onda quadrada)
+        // Quando não invertido, 0% é Low e 100% é High
+    }
 
     // Setters
     void setFrequency(uint16_t hz) {
         config.frequency = constrain(hz, 100, 8000);
+        applyFrequency(config.frequency);
     }
 
     // Getters
@@ -76,7 +74,7 @@ namespace PWM {
     void setup() {
         pinMode(Pins::PWM_OUT,OUTPUT);
         defaultValue();
-        applyFrequency(getFrequency());
+        setFrequency(PWM_FREQ_HZ);
         setPct(0);
     }
 

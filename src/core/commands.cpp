@@ -30,7 +30,7 @@ namespace {
 
         void hold(const char* args) {
             int pct = atoi(args);
-            pct = constrain(pct, 0, 100);
+            pct = constrain(pct, 0, 100)    ;
             // Se der erro, tirar esse buffer
             char buf[4];
             itoa(pct, buf, 10);
