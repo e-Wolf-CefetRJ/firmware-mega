@@ -80,7 +80,7 @@ namespace {
             uint16_t hz = (uint16_t)atoi(args);
             PWM::setFrequency(hz);
             char buf[6];
-            itoa(hz, buf, 10);
+            itoa(PWM::getFrequency(), buf, 10);
             ack("SET_PWMF", buf);
         }
 
