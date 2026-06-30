@@ -5,6 +5,74 @@
 
 // Valores Privados
 namespace {
+    // ==================================================
+    // --------------------- FAULTS ---------------------
+    // ==================================================
+    // Margem de segurança: 10% da faixa de trabalho: 0.1 * (2.46) 
+    constexpr float VOLTAGE_FAULT_LOW  = 0.68;   // 0.93 - 0.246
+    constexpr float VOLTAGE_FAULT_HIGH = 3.64f;  // 3.39 + 0.246
+
+    struct FaultConfig {
+        uint8_t debounceCount = 5;      // 5 vezes seguidas em fault -> Iniciar desaceleração
+        float reductionStep = 10.0f;    // reduz 10%
+    };
+
+    struct FaultState {
+        bool active = false;
+        uint8_t counter = 0;
+        float safePct = 0.0f;
+    };
+
+    FaultConfig faultConfig;
+    FaultState faultState;
+
+    bool isFault(float voltage) {
+        return (voltage < VOLTAGE_FAULT_LOW) || (voltage > VOLTAGE_FAULT_HIGH);
+    }
+
+    float applyFaultHandler(float voltage, float pct) {
+        bool criticalFault = voltage < 0.05f;
+        bool fault = isFault(voltage);
+
+        // Debounce
+        if (fault) {
+            if (faultState.counter < 255)
+                faultState.counter++;
+        } else {
+            faultState.counter = 0;
+            faultState.active = false;
+            faultState.safePct = pct;
+            return pct;
+        }
+
+        // Fault ativo só depois de 5 leituras
+        if (faultState.counter >= faultConfig.debounceCount) {
+            faultState.active = true;
+        }
+
+        // Fault crítico, se der zero
+        if (criticalFault) {
+            faultState.active = true;
+            faultState.safePct = 0;
+            return 0;
+        }
+
+        // Redução gradual
+        if (faultState.active) {
+            faultState.safePct -= faultConfig.reductionStep;
+
+            if (faultState.safePct < 0)
+                faultState.safePct = 0;
+        } else {
+            faultState.safePct = pct;
+        }
+
+        return faultState.safePct;
+    }
+
+    // ==================================================
+    // ---------------------- MAIN ----------------------
+    // ==================================================
     struct Config {
         float voltageMin = 0.0f;
         float voltageMax = 0.0f;
@@ -27,10 +95,6 @@ namespace {
     constexpr float VOLTAGE_MIN = 0.93f; 
     constexpr float VOLTAGE_MAX = 3.39f; 
 
-    // Fault
-    constexpr float VOLTAGE_FAULT_LOW  = 0.23f;  // 0.05 é o limite físico
-    constexpr float VOLTAGE_FAULT_HIGH = 4.09f;  // 4.95 é o limite físico
-
     float readFilteredVoltage(uint8_t pin) {
         int raw = analogRead(pin);
 
@@ -52,8 +116,8 @@ namespace {
     void setData() {
         float voltage = readFilteredVoltage(Pins::THROTTLE);
         
-        bool fault = (voltage < VOLTAGE_FAULT_LOW) || (voltage > VOLTAGE_FAULT_HIGH);
-        float pedalPct = fault ? 0.0f : voltageToPct(voltage);
+        float rawPct = voltageToPct(voltage);
+        float pedalPct = applyFaultHandler(voltage, rawPct);
         
         data.volts = voltage;
         data.pct = pedalPct;

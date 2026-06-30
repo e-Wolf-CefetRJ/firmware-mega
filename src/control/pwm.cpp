@@ -27,9 +27,10 @@ namespace {
         TCCR1A=0; 
         TCCR1B=0;
         
-        TCCR1A|=(1<<WGM11)|(1<<COM1A1);
+        // Padrão:
+        //TCCR1A|=(1<<WGM11)|(1<<COM1A1);
         // Invertido:
-        // TCCR1A |= (1 << WGM11) | (1 << COM1A1) | (1 << COM1A0);
+        TCCR1A |= (1 << WGM11) | (1 << COM1A1) | (1 << COM1A0);
         TCCR1B|=(1<<WGM12)|(1<<WGM13);
         
         ICR1=(uint16_t)top; 
