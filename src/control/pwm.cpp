@@ -28,9 +28,10 @@ namespace {
         TCCR1B=0;
         
         // Padrão:
-        //TCCR1A|=(1<<WGM11)|(1<<COM1A1);
+        TCCR1A|=(1<<WGM11)|(1<<COM1A1);
         // Invertido:
-        TCCR1A |= (1 << WGM11) | (1 << COM1A1) | (1 << COM1A0);
+        //TCCR1A |= (1 << WGM11) | (1 << COM1A1) | (1 << COM1A0);
+
         TCCR1B|=(1<<WGM12)|(1<<WGM13);
         
         ICR1=(uint16_t)top; 
@@ -49,6 +50,7 @@ namespace PWM {
     // Helpers
     void setPct(float pct){
         pct=constrain(pct,0,100);
+        // pct = 100 - pct;
 
         uint16_t top = ICR1;  // Período total do PWM
         uint16_t val = (uint16_t) ((pct/100.0f)*(float)top);
@@ -56,7 +58,7 @@ namespace PWM {
         if(val>top) 
             val=top;    
         
-        OCR1A=val;  // Define o valor que vai mudar de High para Low (gera a onda quadrada)
+        OCR1A=val;  // Define o valor que vai mudar de High para Low (ger   a a onda quadrada)
         // Quando não invertido, 0% é Low e 100% é High
     }
 

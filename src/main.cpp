@@ -32,8 +32,6 @@ void setup() {
 
     Ramp::setup();
     
-    Throttle::setup();
-
     Serial.println(F("ACK:BOOT OK"));
 }
 

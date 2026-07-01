@@ -18,6 +18,7 @@ namespace {
 
     // Handler
     namespace {
+        // RAMP
         void start(const char*) {
             Ramp::start();
             ack("START", "");
@@ -36,52 +37,6 @@ namespace {
             itoa(pct, buf, 10);
             Ramp::hold(pct);
             ack("HOLD", buf);
-        }
-
-        void setMin(const char*) {
-            Throttle::setVoltageMin(Throttle::getVolts());
-            char buf[8];
-            dtostrf(Throttle::getVoltageMin(), 0, 3, buf);
-            ack("SET_MIN_NOW", buf);
-        }
-
-        void setMax(const char*) {
-            Throttle::setVoltageMax(Throttle::getVolts());
-            char buf[8];
-            dtostrf(Throttle::getVoltageMax(), 0, 3, buf);
-            ack("SET_MAX_NOW", buf);
-        }
-
-        void defaults(const char*) {
-            Eeprom::reset();
-            PWM::setFrequency(PWM::getFrequency());
-            ack("DEFAULTS", "OK");
-        }
-
-        void setWheel(const char* args) {
-            float cm = atof(args);
-            cm = constrain(cm, 0.5f, 200.0f);
-            RPM::setWheelCm(cm);
-            char buf[8];
-            dtostrf(cm, 0, 1, buf);
-            ack("SET_WHEEL", buf);
-        }
-
-        void setPpr(const char* args) {
-            int n = atoi(args);
-            n = constrain(n, 1, 16);
-            RPM::setPpr((uint8_t)n);
-            char buf[4];
-            itoa(n, buf, 10);
-            ack("SET_PPR", buf);
-        }
-
-        void setPwmf(const char* args) {
-            uint16_t hz = (uint16_t)atoi(args);
-            PWM::setFrequency(hz);
-            char buf[6];
-            itoa(PWM::getFrequency(), buf, 10);
-            ack("SET_PWMF", buf);
         }
 
         void setStartMin(const char* args) {
@@ -133,60 +88,6 @@ namespace {
             ack("SET_SLEW", buf);
         }
 
-        void setZeroTo(const char* args) {
-            unsigned long us = strtoul(args, nullptr, 10);
-            RPM::setZeroTimeout(us);
-            char buf[12];
-            ultoa(us, buf, 10);
-            ack("SET_ZEROTO", buf);
-        }
-
-        void save(const char*) {
-            Eeprom::save();
-            ack("SAVE", "OK");
-        }
-
-        void loadDefaults(const char*) {
-            Eeprom::reset();
-            PWM::setFrequency(PWM::getFrequency());
-            ack("LOAD_DEFAULTS", "OK");
-        }
-
-        void setMinV(const char* args) {
-            Throttle::setVoltageMin(atof(args));
-            char buf[8];
-            dtostrf(Throttle::getVoltageMin(), 0, 3, buf);
-            ack("SET_MINV", buf);
-        }
-
-        void setMaxV(const char* args) {
-            Throttle::setVoltageMax(atof(args));
-            char buf[8];
-            dtostrf(Throttle::getVoltageMax(), 0, 3, buf);
-            ack("SET_MAXV", buf);
-        }
-
-        void setMaxPct(const char* args) {
-            int x = atoi(args);
-            x = constrain(x, 1, 100);
-            Ramp::setMaxPct((uint8_t) x );
-            char buf[4];
-            itoa(Ramp::getMaxPct(), buf, 10);
-            ack("SET_MAXPCT", buf);
-        }
-
-        void setPrintmode(const char* args) {
-            // args pode ser "KVP" ou "PLOTTER"
-            if (strcasecmp(args, "KVP") == 0) {
-                Telemetry::setPrintMode(0);
-            } else if (strcasecmp(args, "PLOTTER") == 0) {
-                Telemetry::setPrintMode(1);
-            }
-            char buf[2];
-            itoa(Telemetry::getPrintMode(), buf, 10);
-            ack("SET_PRINTMODE", buf);
-        }
-
         void setStepMode(const char* args) {
             int x = atoi(args);
             Ramp::setStepMode(x != 0);
@@ -207,6 +108,43 @@ namespace {
             ack("SET_RAMPDELAY", buf);
         }
 
+        void setMaxPct(const char* args) {
+            int x = atoi(args);
+            x = constrain(x, 1, 100);
+            Ramp::setMaxPct((uint8_t) x );
+            char buf[4];
+            itoa(Ramp::getMaxPct(), buf, 10);
+            ack("SET_MAXPCT", buf);
+        }
+
+
+        // RPM
+        void setWheel(const char* args) {
+            float cm = atof(args);
+            cm = constrain(cm, 0.5f, 200.0f);
+            RPM::setWheelCm(cm);
+            char buf[8];
+            dtostrf(cm, 0, 1, buf);
+            ack("SET_WHEEL", buf);
+        }
+
+        void setPpr(const char* args) {
+            int n = atoi(args);
+            n = constrain(n, 1, 16);
+            RPM::setPpr((uint8_t)n);
+            char buf[4];
+            itoa(n, buf, 10);
+            ack("SET_PPR", buf);
+        }
+
+        void setZeroTo(const char* args) {
+            unsigned long us = strtoul(args, nullptr, 10);
+            RPM::setZeroTimeout(us);
+            char buf[12];
+            ultoa(us, buf, 10);
+            ack("SET_ZEROTO", buf);
+        }
+
         void setRpmMinPulse(const char* args) {
             unsigned long us = strtoul(args, nullptr, 10);
             RPM::setMinPulse(us);
@@ -214,44 +152,110 @@ namespace {
             ultoa(us, buf, 10);
             ack("SET_RPM_MINPULSE", buf);
         }
+
+
+        // EEPROM
+        void save(const char*) {
+            Eeprom::save();
+            ack("SAVE", "OK");
+        }
+
+        void loadDefaults(const char*) {
+            Eeprom::reset();
+            PWM::setFrequency(PWM::getFrequency());
+            ack("LOAD_DEFAULTS", "OK");
+        }
+
+
+        // Throttle
+        void setMin(const char*) {
+            Throttle::setVoltageMin(Throttle::getVolts());
+            char buf[8];
+            dtostrf(Throttle::getVoltageMin(), 0, 3, buf);
+            ack("SET_MIN_NOW", buf);
+        }
+
+        void setMax(const char*) {
+            Throttle::setVoltageMax(Throttle::getVolts());
+            char buf[8];
+            dtostrf(Throttle::getVoltageMax(), 0, 3, buf);
+            ack("SET_MAX_NOW", buf);
+        }
+
+        void setMinV(const char* args) {
+            Throttle::setVoltageMin(atof(args));
+            char buf[8];
+            dtostrf(Throttle::getVoltageMin(), 0, 3, buf);
+            ack("SET_MINV", buf);
+        }
+
+        void setMaxV(const char* args) {
+            Throttle::setVoltageMax(atof(args));
+            char buf[8];
+            dtostrf(Throttle::getVoltageMax(), 0, 3, buf);
+            ack("SET_MAXV", buf);
+        }
+
+
+        // Telemetria
+        void setPrintmode(const char* args) {
+            // args pode ser "KVP" ou "PLOTTER"
+            if (strcasecmp(args, "KVP") == 0) {
+                Telemetry::setPrintMode(0);
+            } else if (strcasecmp(args, "PLOTTER") == 0) {
+                Telemetry::setPrintMode(1);
+            }
+            char buf[2];
+            itoa(Telemetry::getPrintMode(), buf, 10);
+            ack("SET_PRINTMODE", buf);
+        }
+
+
+        // PWM
+        void setPwmf(const char* args) {
+            uint16_t hz = (uint16_t)atoi(args);
+            PWM::setFrequency(hz);
+            char buf[6];
+            itoa(PWM::getFrequency(), buf, 10);
+            ack("SET_PWMF", buf);
+        }
     }
 
     const Command commandTable[] = {
         // Controle da rampa
         {"START",            start},
         {"STOP",             stop},
-        {"HOLD",             hold},
-        {"SET_STARTMIN",     setStartMin},
-        {"SET_RAPIDMS",      setRapidMs},
-        {"SET_RAPIDUP",      setRapidup},
-        {"SET_SLEW",         setSlew},
-        {"SET_MAXPCT",       setMaxPct},
-        {"SET_STEP_MODE",    setStepMode},
-        {"SET_ACCELS_ON",    setAccelsOn},
-        {"SET_RAMPDELAY",    setRampDelay},
+        {"HOLD",             hold},         // Argumento: pct   float
+        {"SET_STARTMIN",     setStartMin},  // Argumento: pct   uint8_t
+        {"SET_RAPIDMS",      setRapidMs},   // Argumento: ms    uint16_t
+        {"SET_RAPIDUP",      setRapidup},   // Argumento: pctps float
+        {"SET_SLEW",         setSlew},      // Argumento: pctps float
+        {"SET_MAXPCT",       setMaxPct},    // Argumento: pct   uint8_t
+        {"SET_STEP_MODE",    setStepMode},  // Argumento: bool (true, false)
+        {"SET_ACCELS_ON",    setAccelsOn},  // Argumento: bool (true, false)
+        {"SET_RAMPDELAY",    setRampDelay}, // Argumento: ms    uint16_t
 
         // Throttle
-        {"SET_MIN_NOW",      setMin},
-        {"SET_MAX_NOW",      setMax},
-        {"SET_MINV",         setMinV},
-        {"SET_MAXV",         setMaxV},
+        {"SET_MIN_NOW",      setMin},   
+        {"SET_MAX_NOW",      setMax},   
+        {"SET_MINV",         setMinV},  // Argumento: Voltagem
+        {"SET_MAXV",         setMaxV},  // Argumento: Voltagem
 
         // RPM
-        {"SET_WHEEL",        setWheel},
-        {"SET_PPR",          setPpr},
-        {"SET_ZEROTO",       setZeroTo},
-        {"SET_RPM_MINPULSE", setRpmMinPulse},
+        {"SET_WHEEL",        setWheel},         // Argumento: float cm
+        {"SET_PPR",          setPpr},           // Argumento: uint8_t ppr
+        {"SET_ZEROTO",       setZeroTo},        // Argumento: uint32_t us
+        {"SET_RPM_MINPULSE", setRpmMinPulse},   // Argumento: int32_t us
 
         // PWM
-        {"SET_PWMF",         setPwmf},
+        {"SET_PWMF",         setPwmf},  // Argumento: Frequência
 
         // EEPROM
         {"SAVE",             save},
-        {"DEFAULTS",         defaults},
         {"LOAD_DEFAULTS",    loadDefaults},
 
         // Telemetria
-        {"SET_PRINTMODE",    setPrintmode}
+        {"SET_PRINTMODE",    setPrintmode}  // Argumento: 0 ou 1 (off ou on)
     };
 
     const uint8_t commandCount = sizeof(commandTable) / sizeof(commandTable[0]);

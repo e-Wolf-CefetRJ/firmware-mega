@@ -1,34 +1,58 @@
 #include "eeprom.h"
 
-// Fowller-Noll-Vo hash function; Cria uma assinatura a cada compilação
-// Única forma da assinatura for igual, é se as compilações forem ao mesmo tempo
-uint32_t buildSignature() {
-    const char* date = __DATE__;
-    const char* time = __TIME__;
 
-    // FNV-1a 32-bit: offset basis e prime
-    uint32_t hash = 2166136261UL;   // 0x811c9dc5
-    const uint32_t prime = 16777619UL; // 0x01000193
+namespace {
+    struct Config {
+        // Assinaturas
+        // uint32_t firmwareSignature;  // Assinatura que muda a cada compilação
+        uint8_t version = 2;            // Assinatura que muda apenas caso desejado (força reset ao mudar)
+        // No momento utilizando version, pois fazemos muitos uploads
 
-    while (*date) {
-        hash ^= (uint8_t)*date++;
+        // Acelerador
+        float voltageMin; 
+        float voltageMax;
+        
+        // PWM
+        uint16_t pwm_hz;
+        
+        // Rampa
+        uint16_t rapid_ms;
+        float rapidUp;
+        float slewUp;
+        float slewDown;
+        uint8_t startMin;
+        uint8_t maxPct;
+    };
+    Config config;
+
+    // Fowller-Noll-Vo hash function; Cria uma assinatura a cada compilação
+    // Única forma da assinatura for igual, é se as compilações forem ao mesmo tempo
+    uint32_t buildSignature() {
+        const char* date = __DATE__;
+        const char* time = __TIME__;
+
+        // FNV-1a 32-bit: offset basis e prime
+        uint32_t hash = 2166136261UL;   // 0x811c9dc5
+        const uint32_t prime = 16777619UL; // 0x01000193
+
+        while (*date) {
+            hash ^= (uint8_t)*date++;
+            hash *= prime;
+        }
+
+        hash ^= (uint8_t)'|';
         hash *= prime;
+
+        while (*time) {
+            hash ^= (uint8_t)*time++;
+            hash *= prime;
+        }
+
+        return hash;
     }
-
-    hash ^= (uint8_t)'|';
-    hash *= prime;
-
-    while (*time) {
-        hash ^= (uint8_t)*time++;
-        hash *= prime;
-    }
-
-    return hash;
 }
 
 namespace Eeprom{
-    Config config;
-    
     void reset() {
         Throttle::defaultValue();
         Ramp::defaultValue();
@@ -36,7 +60,8 @@ namespace Eeprom{
     }
 
     void save() {
-        config.firmwareSignature = buildSignature();
+        //config.firmwareSignature = buildSignature();
+        config.version = 2;
 
         config.voltageMin  =  Throttle::getVoltageMin();
         config.voltageMax  =  Throttle::getVoltageMax();
@@ -56,8 +81,9 @@ namespace Eeprom{
     bool load() {
         EEPROM.get(0,config);
 
-        if (config.firmwareSignature != buildSignature()) return false;
-
+        //if (config.firmwareSignature != buildSignature()) return false;
+        if (config.version != 2) return false;
+        
         Throttle::setVoltageMin(config.voltageMin);
         Throttle::setVoltageMax(config.voltageMax);
 
